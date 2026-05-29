@@ -5,8 +5,13 @@ metadata:
   namespace: wisecow
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - wisecow.local
+    secretName: wisecow-tls-secret
   rules:
   - host: wisecow.local
     http:
