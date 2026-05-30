@@ -1,37 +1,118 @@
-# Cow wisdom web server
+# 🐄 Wisecow Application — DevOps Project
 
-## Prerequisites
+A containerized web application that serves random
+fortune quotes via an ASCII cow, deployed on Kubernetes
+with TLS and automated CI/CD.
 
+---
+
+## 🏗️ Architecture
+
+Internet → HTTPS → Ingress (nginx) → Service → Pods (x2)
+↑
+TLS via cert-manager
+↑
+wisecow-tls-secret
+
+---
+
+## 🧰 Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Application | Bash + cowsay + fortune + netcat |
+| Container | Docker |
+| Orchestration | Kubernetes (Kind for local) |
+| TLS | cert-manager (self-signed) |
+| CI/CD | GitHub Actions |
+| Registry | Docker Hub |
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Docker
+- kubectl
+- Kind
+
+### Run Locally with Docker
+```bash
+docker pull abhinavgusain0512/wisecow:latest
+docker run -p 8080:4499 abhinavgusain0512/wisecow:latest
+# Visit http://localhost:8080
 ```
-sudo apt install fortune-mod cowsay -y
+
+### Deploy to Kubernetes
+```bash
+# Create cluster
+kind create cluster --name wisecow --config kind-config.yaml
+
+# Install ingress controller
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+
+# Install cert-manager
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.0/cert-manager.yaml
+
+# Deploy application
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+kubectl apply -f k8s/ingress.yaml
+kubectl apply -f k8s/tls/issuer.yaml
+kubectl apply -f k8s/tls/certificate.yaml
+
+# Access the app
+kubectl port-forward -n ingress-nginx \
+  service/ingress-nginx-controller 8443:443
+# Visit https://wisecow.local:8443
 ```
 
-## How to use?
+---
 
-1. Run `./wisecow.sh`
-2. Point the browser to server port (default 4499)
+## 🔄 CI/CD Pipeline
 
-## What to expect?
-![wisecow](https://github.com/nyrahul/wisecow/assets/9133227/8d6bfde3-4a5a-480e-8d55-3fef60300d98)
+Every push to `main` automatically:
+1. Builds Docker image
+2. Tags with `latest` and commit SHA
+3. Pushes to Docker Hub
 
-# Problem Statement
-Deploy the wisecow application as a k8s app
+### Secrets Required
+| Secret | Description |
+|--------|-------------|
+| DOCKER_USERNAME | Docker Hub username |
+| DOCKER_PASSWORD | Docker Hub access token |
 
-## Requirement
-1. Create Dockerfile for the image and corresponding k8s manifest to deploy in k8s env. The wisecow service should be exposed as k8s service.
-2. Github action for creating new image when changes are made to this repo
-3. [Challenge goal]: Enable secure TLS communication for the wisecow app.
+---
 
-## Expected Artifacts
-1. Github repo containing the app with corresponding dockerfile, k8s manifest, any other artifacts needed.
-2. Github repo with corresponding github action.
-3. Github repo should be kept private and the access should be enabled for following github IDs: nyrahul
-# Wisecow Application
+## 📁 Project Structure
+├── .github/workflows/
+│   ├── deploy.yml         # CI/CD pipeline
+│   └── health-check.yml   # Health monitoring
+├── k8s/
+│   ├── namespace.yaml
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   ├── ingress.yaml
+│   └── tls/
+│       ├── issuer.yaml
+│       └── certificate.yaml
+├── Dockerfile
+├── kind-config.yaml
+└── wisecow.sh
 
-## Docker Image
-Available on Docker Hub:
-docker pull YOUR_DOCKERHUB_USERNAME/wisecow:latest
+---
 
-## Run Locally
-docker run -p 8080:4499 YOUR_DOCKERHUB_USERNAME/wisecow:latest
-Visit http://localhost:8080
+## 🔐 TLS
+
+Uses cert-manager with self-signed certificates for
+local development. For production, replace the Issuer
+with Let's Encrypt ACME configuration.
+
+---
+
+## 🩺 Health Monitoring
+
+Automated health checks run every 30 minutes via
+GitHub Actions, verifying pod status and TLS
+certificate validity.
